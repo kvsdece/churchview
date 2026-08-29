@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ChurchView — Apresentação de Versículos</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    :root {
+        --primary: #6d5dfc;
+        --bg: #11131a;
+        --panel: #1a1d27;
+        --panel2: #222633;
+        --text: #ffffff;
+        --muted: #9ca3af;
+        --border: rgba(255,255,255,.08);
+    }
+
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+    }
+
+    /* =========================
+       PAINEL DO APRESENTADOR
+    ========================== */
+
+    .app {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        width: 300px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        padding: 24px;
+        flex-shrink: 0;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 35px;
+    }
+
+    .logo-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: var(--primary);
+        font-size: 22px;
+    }
+
+    .logo h1 {
+        font-size: 20px;
+    }
+
+    .logo span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .menu-title {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+    }
+
+    .menu-item {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: #ddd;
+        padding: 13px;
+        text-align: left;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 5px;
+        transition: .2s;
+    }
+
+    .menu-item:hover,
+    .menu-item.active {
+        background: rgba(109,93,252,.15);
+        color: white;
+    }
+
+    .presentation-status {
+        margin-top: 35px;
+        padding: 15px;
+        background: var(--panel2);
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        display: inline-block;
+        background: #ef4444;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+
+    .status-dot.online {
+        background: #22c55e;
+    }
+
+    .main {
+        flex: 1;
+        padding: 35px;
+        overflow: auto;
+    }
+
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 35px;
+    }
+
+    .topbar h2 {
+        font-size: 26px;
+    }
+
+    .topbar p {
+        color: var(--muted);
+        margin-top: 6px;
+    }
+
+    .button {
+        border: none;
+        padding: 12px 18px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: .2s;
+    }
+
+    .button:hover {
+        transform: translateY(-1px);
+    }
+
+    .button-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .button-secondary {
+        background: var(--panel2);
+        color: white;
+        border: 1px solid var(--border);
+    }
+
+    .search-section {
+        max-width: 1000px;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 10px;
+        background: var(--panel);
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+    }
+
+    .search-box input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: white;
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    .search-box button {
+        border: none;
+        background: var(--primary);
+        color: white;
+        padding: 0 20px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 10px 5px 25px;
+    }
+
+    .results {
+        display: grid;
+        gap: 12px;
+    }
+
+    .verse-card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .verse-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .verse-reference {
+        color: #a99fff;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .verse-text {
+        color: #ddd;
+        line-height: 1.6;
+    }
+
+    .selected-verse {
+        margin-top: 30px;
+        background: var(--panel);
+        padding: 22px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+    }
+
+    .selected-verse h3 {
+        margin-bottom: 15px;
+    }
+
+    .chain-section {
+        margin-top: 25px;
+    }
+
+    .chain-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .chain-nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .chain-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .chain-empty {
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .chain-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 10px 12px;
+    }
+
+    .chain-item.active {
+        border-color: var(--primary);
+    }
+
+    .chain-item-ref {
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .chain-item-actions button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 2px 6px;
+        font-size: 14px;
+    }
+
+    .chain-item-actions button:hover {
+        color: white;
+    }
+
+    /* =========================
+       IMAGENS
+    ========================== */
+
+    .background-section {
+        margin-top: 35px;
+    }
+
+    .background-section h3 {
+        margin-bottom: 15px;
+    }
+
+    .image-search {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .image-search input {
+        flex: 1;
+        padding: 13px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        color: white;
+        outline: none;
+    }
+
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 14px;
+    }
+
+    .image-option {
+        height: 120px;
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        border: 3px solid transparent;
+        transition: .2s;
+    }
+
+    .image-option:hover {
+        transform: scale(1.02);
+    }
+
+    .image-option.selected {
+        border-color: var(--primary);
+    }
+
+    .image-option img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-option span {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 7px;
+        background: linear-gradient(transparent, rgba(0,0,0,.8));
+        font-size: 11px;
+    }
+
+    .preview {
+        margin-top: 35px;
+        height: 250px;
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+        background-size: cover;
+        background-position: center;
+        border: 1px solid var(--border);
+    }
+
+    .preview-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 30px;
+    }
+
+    .preview-text {
+        font-size: clamp(18px, 2vw, 28px);
+        max-width: 900px;
+        line-height: 1.4;
+        overflow-wrap: break-word;
+    }
+
+    .preview-reference {
+        margin-top: 20px;
+        font-size: 15px;
+        color: #ddd;
+    }
+
+    /* =========================
+       TELA DE APRESENTAÇÃO
+    ========================== */
+
+    .presentation {
+        position: fixed;
+        inset: 0;
+        background-color: #000;
+        background-size: cover;
+        background-position: center;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .presentation::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(
+                135deg,
+                rgba(0,0,0,.78),
+                rgba(0,0,0,.38)
+            );
+    }
+
+    .presentation-content {
+        position: relative;
+        z-index: 2;
+        width: min(90%, 1500px);
+        max-height: 92vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        text-align: center;
+        padding: 60px;
+    }
+
+    .presentation-text {
+        font-size: clamp(35px, 5vw, 90px);
+        line-height: 1.25;
+        font-weight: bold;
+        text-shadow: 0 4px 20px rgba(0,0,0,.8);
+        overflow-wrap: break-word;
+    }
+
+    .presentation-reference {
+        margin-top: 40px;
+        font-size: clamp(20px, 2vw, 38px);
+        opacity: .9;
+        text-shadow: 0 3px 10px black;
+    }
+
+    .presentation-position {
+        margin-top: 12px;
+        font-size: clamp(14px, 1.2vw, 20px);
+        opacity: .7;
+    }
+
+    .presentation-empty {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        color: #aaa;
+        font-size: 30px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    @media(max-width: 800px) {
+        .app {
+            display: block;
+        }
+
+        .sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .main {
+            padding: 20px;
+        }
+
+        .topbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     PAINEL DO APRESENTADOR
+========================= -->
+
+<div id="controllerApp" class="app">
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">✝</div>
+
+            <div>
+                <h1>ChurchView</h1>
+                <span>Apresentação de Versículos</span>
+            </div>
+        </div>
+
+        <div class="menu-title">
+            Ferramentas
+        </div>
+
+        <button class="menu-item active">
+            📖 Versículos
+        </button>
+
+        <button class="menu-item">
+            🖼 Fundos
+        </button>
+
+        <button class="menu-item">
+            ⚙ Configurações
+        </button>
+
+        <div class="presentation-status">
+            <div>
+                <span id="statusDot" class="status-dot"></span>
+                <span id="statusText">Apresentação fechada</span>
+            </div>
+
+            <br>
+
+            <button
+                class="button button-primary"
+                style="width:100%"
+                onclick="openPresentation()"
+            >
+                Abrir apresentação
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+
+            <div>
+                <h2>Controle da apresentação</h2>
+                <p>Pesquise um versículo, escolha um fundo e envie para a tela.</p>
+            </div>
+
+            <button
+                class="button button-secondary"
+                onclick="sendToPresentation()"
+            >
+                Enviar para apresentação
+            </button>
+
+        </div>
+
+
+        <section class="search-section">
+
+            <div class="search-box">
+
+                <input
+                    id="verseSearch"
+                    placeholder="Ex: João 3:16, Salmos 23:1..."
+                    onkeydown="if(event.key === 'Enter') searchVerse()"
+                >
+
+                <button onclick="searchVerse()">
+                    Pesquisar
+                </button>
+
+            </div>
+
+            <div class="hint">
+                Pesquise no formato <strong>João 3:16</strong>, <strong>1 Coríntios 13:4</strong>
+                ou um intervalo como <strong>Lucas 11:5-13</strong>.
+                A busca consulta a BIBLIAAPI.
+            </div>
+
+
+            <div id="results" class="results">
+
+                <div class="verse-card"
+                     onclick="selectVerse(
+                        'João 3:16',
+                        'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.'
+                     )">
+
+                    <div class="verse-reference">
+                        João 3:16
+                    </div>
+
+                    <div class="verse-text">
+                        Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito...
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="selected-verse">
+
+                <h3>Versículo selecionado</h3>
+
+                <div id="selectedReference" class="verse-reference">
+                    Nenhum versículo selecionado
+                </div>
+
+                <div id="selectedText" class="verse-text">
+                    Pesquise e selecione um versículo para começar.
+                </div>
+
+            </div>
+
+            <div class="chain-section">
+
+                <div class="chain-header">
+                    <h3>Cadeia de versículos</h3>
+
+                    <div id="chainNav" class="chain-nav hidden">
+                        <button type="button" class="button button-secondary" onclick="prevInChain()">‹ Anterior</button>
+                        <span id="chainPosition"></span>
+                        <button type="button" class="button button-secondary" onclick="nextInChain()">Próximo ›</button>
+                    </div>
+                </div>
+
+                <div id="chainList" class="chain-list">
+                    <div class="chain-empty">Nenhum versículo na cadeia.</div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section class="background-section">
+
+            <h3>Imagem de fundo</h3>
+
+            <div class="image-search">
+
+                <input
+                    id="imageSearch"
+                    placeholder="Ex: céu, natureza, montanhas, cruz..."
+                    onkeydown="if(event.key === 'Enter') searchImages()"
+                >
+
+                <button
+                    class="button button-primary"
+                    onclick="searchImages()"
+                >
+                    Buscar imagens
+                </button>
+
+            </div>
+
+
+            <div id="imageGrid" class="image-grid"></div>
+
+
+            <div
+                id="preview"
+                class="preview"
+            >
+
+                <div class="preview-overlay">
+
+                    <div
+                        id="previewText"
+                        class="preview-text"
+                    >
+                        Selecione um versículo
+                    </div>
+
+                    <div
+                        id="previewReference"
+                        class="preview-reference"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- =========================
+     TELA DE APRESENTAÇÃO
+========================= -->
+
+<div
+    id="presentationApp"
+    class="presentation hidden"
+>
+
+    <div
+        id="presentationEmpty"
+        class="presentation-empty"
+    >
+        Aguardando apresentação...
+    </div>
+
+
+    <div
+        id="presentationContent"
+        class="presentation-content hidden"
+    >
+
+        <div
+            id="presentationText"
+            class="presentation-text"
+        ></div>
+
+        <div
+            id="presentationReference"
+            class="presentation-reference"
+        ></div>
+
+        <div
+            id="presentationPosition"
+            class="presentation-position"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let selectedVerse = null;
+let selectedBackground = "";
+let presentationWindow = null;
+let verseChain = [];
+let currentChainIndex = 0;
+
+/* =========================================================
+   BIBLIAAPI
+   ========================================================= */
+
+/*
+    Cole sua chave aqui.
+
+    IMPORTANTE:
+    Em um arquivo HTML público, essa chave ficará visível.
+    Para produção, o ideal é usar um backend.
+*/
+const BIBLIA_API_TOKEN = "bapi_uglynuyivxle47hjyw1ksqyx5lol3fxtn3erxkep8iixcebv";
+const BIBLIA_API_VERSION = "acf";
+
+const bookAliases = {
+    "gênesis":"gn","genesis":"gn","êxodo":"ex","exodo":"ex","levítico":"lv","levitico":"lv",
+    "números":"nm","numeros":"nm","deuteronômio":"dt","deuteronomio":"dt","josué":"js","josue":"js",
+    "juízes":"jz","juizes":"jz","rute":"rt","1 samuel":"1sm","2 samuel":"2sm","1 reis":"1rs","2 reis":"2rs",
+    "1 crônicas":"1cr","1 cronicas":"1cr","2 crônicas":"2cr","2 cronicas":"2cr","esdras":"ed","neemias":"ne",
+    "ester":"et","jó":"job","jo":"job","salmos":"sl","salmo":"sl","provérbios":"pv","proverbios":"pv",
+    "eclesiastes":"ec","cantares":"ct","isaías":"is","isaias":"is","jeremias":"jr","lamentações":"lm","lamentacoes":"lm",
+    "ezequiel":"ez","daniel":"dn","oséias":"os","oseias":"os","joel":"jl","amós":"am","amos":"am","obadias":"ob",
+    "jonas":"jn","miqueias":"mq","naum":"na","habacuque":"hc","sofonias":"sf","ageu":"ag","zacarias":"zc","malaquias":"ml",
+    "mateus":"mt","marcos":"mc","lucas":"lc","joão":"jo","joao":"jo","atos":"at","romanos":"rm",
+    "1 coríntios":"1co","1 corintios":"1co","2 coríntios":"2co","2 corintios":"2co","gálatas":"gl","galatas":"gl",
+    "efésios":"ef","efesios":"ef","filipenses":"fp","colossenses":"cl","1 tessalonicenses":"1ts","2 tessalonicenses":"2ts",
+    "1 timóteo":"1tm","1 timoteo":"1tm","2 timóteo":"2tm","2 timoteo":"2tm","tito":"tt","filemom":"fm","hebreus":"hb",
+    "tiago":"tg","1 pedro":"1pe","2 pedro":"2pe","1 joão":"1jo","1 joao":"1jo","2 joão":"2jo","2 joao":"2jo",
+    "3 joão":"3jo","3 joao":"3jo","judas":"jd","apocalipse":"ap"
+};
+
+function normalizeBook(book) {
+    return book.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function searchVerse() {
+    const input = document.getElementById("verseSearch").value.trim();
+    const container = document.getElementById("results");
+
+    /*
+        Aceita:
+        João 3:16
+        1 Coríntios 13:4
+        Lucas 11:5-13
+    */
+    const match = input.match(/^(.+?)\s+(\d+)\s*:\s*(\d+)(?:\s*-\s*(\d+))?$/i);
+
+    if (!match) {
+        container.innerHTML = `
+            <div class="verse-card">
+                Digite uma referência no formato <strong>João 3:16</strong>
+                ou <strong>Lucas 11:5-13</strong>.
+            </div>
+        `;
+        return;
+    }
+
+    if (!BIBLIA_API_TOKEN || BIBLIA_API_TOKEN === "COLE_SUA_CHAVE_AQUI") {
+        container.innerHTML = `
+            <div class="verse-card">
+                Configure sua chave da BIBLIAAPI na constante
+                <strong>BIBLIA_API_TOKEN</strong>.
+            </div>
+        `;
+        return;
+    }
+
+    const [, bookName, chapter, verseStartRaw, verseEndRaw] = match;
+    const book = bookAliases[normalizeBook(bookName)];
+
+    if (!book) {
+        container.innerHTML = `
+            <div class="verse-card">
+                Livro não reconhecido: <strong>${escapeHTML(bookName)}</strong>.
+            </div>
+        `;
+        return;
+    }
+
+    let verseStart = parseInt(verseStartRaw, 10);
+    let verseEnd = verseEndRaw ? parseInt(verseEndRaw, 10) : verseStart;
+
+    if (verseEnd < verseStart) {
+        [verseStart, verseEnd] = [verseEnd, verseStart];
+    }
+
+    const MAX_RANGE = 30;
+    if (verseEnd - verseStart + 1 > MAX_RANGE) {
+        container.innerHTML = `
+            <div class="verse-card">
+                Intervalo muito grande. Máximo de <strong>${MAX_RANGE}</strong> versículos por busca.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="verse-card">
+            Buscando ${escapeHTML(input)}...
+        </div>
+    `;
+
+    const verseNumbers = [];
+    for (let v = verseStart; v <= verseEnd; v++) verseNumbers.push(v);
+
+    const outcomes = await Promise.all(
+        verseNumbers.map(v => fetchSingleVerse(book, chapter, v, bookName))
+    );
+
+    const results = outcomes.filter(o => o.ok).map(o => o.result);
+    const failures = outcomes.filter(o => !o.ok);
+
+    if (results.length === 0) {
+        container.innerHTML = `
+            <div class="verse-card">
+                Não foi possível buscar o versículo.<br>
+                <strong>Detalhe:</strong> ${escapeHTML(failures[0]?.error || "erro desconhecido")}
+            </div>
+        `;
+        return;
+    }
+
+    renderVerseResults(results);
+
+    if (failures.length > 0) {
+        console.warn("Alguns versículos do intervalo falharam:", failures);
+    }
+}
+
+async function fetchSingleVerse(book, chapter, verse, bookName) {
+    try {
+        const url =
+            `https://bibliaapi.com.br/api/v2/versions/${encodeURIComponent(BIBLIA_API_VERSION)}` +
+            `/books/${encodeURIComponent(book)}` +
+            `/chapters/${encodeURIComponent(chapter)}` +
+            `/verses/${encodeURIComponent(verse)}`;
+
+        const response = await fetch(url, {
+            headers: {
+                "Authorization": `Bearer ${BIBLIA_API_TOKEN}`,
+                "Accept": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            const body = await response.text().catch(() => "");
+            throw new Error(`HTTP ${response.status}${body ? " — " + body.slice(0, 200) : ""}`);
+        }
+
+        const data = await response.json();
+
+        /*
+            Tenta acomodar pequenas diferenças no formato da resposta.
+        */
+        const verseText =
+            data.text ||
+            data.content ||
+            data.texto ||
+            data.verse?.text ||
+            data.verses?.[0]?.text ||
+            data.data?.text ||
+            data.result?.text ||
+            (typeof data.verse === "string" ? data.verse : null) ||
+            (Array.isArray(data) ? data[0]?.text : null);
+
+        if (!verseText) {
+            console.log("Resposta da API:", data);
+            throw new Error(
+                "Formato de resposta não reconhecido. JSON: " +
+                JSON.stringify(data).slice(0, 300)
+            );
+        }
+
+        const reference =
+            data.reference ||
+            `${bookName.trim()} ${chapter}:${verse}`;
+
+        return {
+            ok: true,
+            result: { reference, text: stripHTML(verseText) }
+        };
+
+    } catch (error) {
+        console.error(`Erro ao consultar ${bookName} ${chapter}:${verse}:`, error);
+        return { ok: false, error: error.message || String(error) };
+    }
+}
+
+function renderVerseResults(results) {
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    if (results.length > 1) {
+        const addAllBtn = document.createElement("button");
+        addAllBtn.type = "button";
+        addAllBtn.className = "button button-primary";
+        addAllBtn.style.marginBottom = "12px";
+        addAllBtn.textContent = `Adicionar todos à cadeia (${results.length})`;
+        addAllBtn.onclick = () => {
+            results.forEach(verse => verseChain.push({ reference: verse.reference, text: verse.text }));
+            goToChainIndex(verseChain.length - 1);
+        };
+        container.appendChild(addAllBtn);
+    }
+
+    results.forEach(verse => {
+        const card = document.createElement("div");
+        card.className = "verse-card";
+
+        const reference = document.createElement("div");
+        reference.className = "verse-reference";
+        reference.textContent = verse.reference;
+
+        const text = document.createElement("div");
+        text.className = "verse-text";
+        text.textContent = verse.text;
+
+        card.append(reference, text);
+
+        card.onclick = () => {
+            selectVerse(verse.reference, verse.text);
+        };
+
+        container.appendChild(card);
+    });
+}
+
+function stripHTML(value) {
+    const div = document.createElement("div");
+    div.innerHTML = String(value);
+    return div.textContent || div.innerText || "";
+}
+
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/* =========================================================
+   CADEIA DE VERSÍCULOS
+========================================================= */
+
+function selectVerse(reference, text) {
+    verseChain.push({ reference, text });
+    goToChainIndex(verseChain.length - 1);
+}
+
+function goToChainIndex(index) {
+    if (index < 0 || index >= verseChain.length) return;
+
+    currentChainIndex = index;
+    selectedVerse = verseChain[index];
+
+    document.getElementById("selectedReference").textContent = selectedVerse.reference;
+    document.getElementById("selectedText").textContent = selectedVerse.text;
+
+    updatePreview();
+    renderChain();
+}
+
+function moveChainItem(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= verseChain.length) return;
+
+    [verseChain[index], verseChain[newIndex]] = [verseChain[newIndex], verseChain[index]];
+
+    if (currentChainIndex === index) currentChainIndex = newIndex;
+    else if (currentChainIndex === newIndex) currentChainIndex = index;
+
+    renderChain();
+}
+
+function removeChainItem(index) {
+    verseChain.splice(index, 1);
+
+    if (verseChain.length === 0) {
+        currentChainIndex = 0;
+        selectedVerse = null;
+        document.getElementById("selectedReference").textContent = "Nenhum versículo selecionado";
+        document.getElementById("selectedText").textContent = "Pesquise e selecione um versículo para começar.";
+    } else {
+        currentChainIndex = Math.min(currentChainIndex, verseChain.length - 1);
+        selectedVerse = verseChain[currentChainIndex];
+        document.getElementById("selectedReference").textContent = selectedVerse.reference;
+        document.getElementById("selectedText").textContent = selectedVerse.text;
+    }
+
+    updatePreview();
+    renderChain();
+}
+
+function renderChain() {
+    const list = document.getElementById("chainList");
+    const nav = document.getElementById("chainNav");
+    list.innerHTML = "";
+
+    if (verseChain.length === 0) {
+        list.innerHTML = '<div class="chain-empty">Nenhum versículo na cadeia.</div>';
+        nav.classList.add("hidden");
+        return;
+    }
+
+    nav.classList.remove("hidden");
+    document.getElementById("chainPosition").textContent =
+        `${currentChainIndex + 1} / ${verseChain.length}`;
+
+    verseChain.forEach((verse, index) => {
+        const item = document.createElement("div");
+        item.className = "chain-item" + (index === currentChainIndex ? " active" : "");
+
+        const ref = document.createElement("span");
+        ref.className = "chain-item-ref";
+        ref.textContent = verse.reference;
+        ref.onclick = () => goToChainIndex(index);
+
+        const actions = document.createElement("span");
+        actions.className = "chain-item-actions";
+
+        const upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.title = "Mover para cima";
+        upBtn.textContent = "↑";
+        upBtn.onclick = () => moveChainItem(index, -1);
+
+        const downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.title = "Mover para baixo";
+        downBtn.textContent = "↓";
+        downBtn.onclick = () => moveChainItem(index, 1);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.title = "Remover";
+        removeBtn.textContent = "×";
+        removeBtn.onclick = () => removeChainItem(index);
+
+        actions.append(upBtn, downBtn, removeBtn);
+        item.append(ref, actions);
+        list.appendChild(item);
+    });
+}
+
+function nextInChain() {
+    if (currentChainIndex >= verseChain.length - 1) return;
+    goToChainIndex(currentChainIndex + 1);
+    sendToPresentation();
+}
+
+function prevInChain() {
+    if (currentChainIndex <= 0) return;
+    goToChainIndex(currentChainIndex - 1);
+    sendToPresentation();
+}
+
+
+/* =========================================================
+   IMAGENS DE FUNDO
+========================================================= */
+
+function searchImages() {
+
+    const query =
+        document
+            .getElementById("imageSearch")
+            .value
+            .trim()
+            || "nature";
+
+
+    generateImageSuggestions(query);
+
+}
+
+
+/*
+    Gera sugestões usando URLs dinâmicas do LoremFlickr.
+
+    Para produção, o ideal seria trocar esta função pela API oficial
+    da Unsplash ou por um backend que consulte Bing/Microsoft Image Search.
+*/
+
+function generateImageSuggestions(query) {
+
+    const container =
+        document.getElementById("imageGrid");
+
+
+    container.innerHTML = "";
+
+
+    const topics = [
+        query,
+        query + ",nature",
+        query + ",sky",
+        query + ",mountains",
+        query + ",sunset",
+        "church," + query,
+        "forest," + query,
+        "ocean," + query
+    ];
+
+
+    topics.forEach((topic, index) => {
+
+        /*
+            lock força imagens diferentes.
+        */
+
+        const imageUrl =
+            `https://loremflickr.com/800/600/${encodeURIComponent(topic)}?lock=${Date.now() + index}`;
+
+
+        const option =
+            document.createElement("div");
+
+
+        option.className =
+            "image-option";
+
+
+        option.innerHTML = `
+
+            <img
+                src="${imageUrl}"
+                alt="${topic}"
+            >
+
+            <span>
+                ${topic}
+            </span>
+
+        `;
+
+
+        option.onclick = () => {
+
+            selectBackground(
+                imageUrl,
+                option
+            );
+
+        };
+
+
+        container.appendChild(option);
+
+    });
+
+}
+
+
+/* =========================================================
+   SELEÇÃO DE FUNDO
+========================================================= */
+
+function selectBackground(url, element) {
+
+    selectedBackground =
+        url;
+
+
+    document
+        .querySelectorAll(".image-option")
+        .forEach(el =>
+            el.classList.remove("selected")
+        );
+
+
+    if (element) {
+
+        element.classList.add("selected");
+
+    }
+
+
+    updatePreview();
+
+}
+
+
+/* =========================================================
+   AJUSTE AUTOMÁTICO DE FONTE
+========================================================= */
+
+function fitTextToContainer(textEl, containerEl, { min = 16, max = 90 } = {}) {
+    if (!textEl || !containerEl) return;
+    if (getComputedStyle(containerEl).display === "none") return;
+
+    let lo = min;
+    let hi = max;
+    let best = min;
+
+    while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        textEl.style.fontSize = mid + "px";
+
+        const fits =
+            containerEl.scrollHeight <= containerEl.clientHeight &&
+            textEl.scrollWidth <= containerEl.clientWidth;
+
+        if (fits) {
+            best = mid;
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    textEl.style.fontSize = best + "px";
+}
+
+function fitPreviewText() {
+    fitTextToContainer(
+        document.getElementById("previewText"),
+        document.getElementById("preview"),
+        { min: 12, max: 28 }
+    );
+}
+
+function fitPresentationText() {
+    fitTextToContainer(
+        document.getElementById("presentationText"),
+        document.getElementById("presentationContent"),
+        { min: 20, max: 90 }
+    );
+}
+
+window.addEventListener("resize", () => {
+    fitPreviewText();
+    fitPresentationText();
+});
+
+/* =========================================================
+   ATUALIZAR PREVIEW
+========================================================= */
+
+function updatePreview() {
+
+    const preview =
+        document.getElementById("preview");
+
+
+    preview.style.backgroundImage =
+        `url("${selectedBackground}")`;
+
+
+    if (selectedVerse) {
+
+        document
+            .getElementById("previewText")
+            .textContent =
+            selectedVerse.text;
+
+
+        document
+            .getElementById("previewReference")
+            .textContent =
+            selectedVerse.reference;
+
+    }
+
+    fitPreviewText();
+
+}
+
+
+/* =========================================================
+   ABRIR SEGUNDA JANELA
+========================================================= */
+
+function openPresentation() {
+
+    presentationWindow =
+        window.open(
+            window.location.href + "#presentation",
+            "churchPresentation",
+            "width=1280,height=720"
+        );
+
+
+    if (!presentationWindow) {
+
+        alert(
+            "O navegador bloqueou a nova janela. Permita pop-ups para este site."
+        );
+
+        return;
+
+    }
+
+
+    document
+        .getElementById("statusDot")
+        .classList.add("online");
+
+
+    document
+        .getElementById("statusText")
+        .textContent =
+        "Apresentação conectada";
+
+
+    /*
+        Atualiza automaticamente enquanto a janela estiver aberta.
+    */
+
+    const checkWindow = setInterval(() => {
+
+        if (
+            !presentationWindow ||
+            presentationWindow.closed
+        ) {
+
+            clearInterval(checkWindow);
+
+
+            document
+                .getElementById("statusDot")
+                .classList.remove("online");
+
+
+            document
+                .getElementById("statusText")
+                .textContent =
+                "Apresentação fechada";
+
+        }
+
+    }, 1000);
+
+
+    setTimeout(() => {
+
+        sendToPresentation();
+
+    }, 1000);
+
+}
+
+
+/* =========================================================
+   ENVIAR PARA A APRESENTAÇÃO
+========================================================= */
+
+function sendToPresentation() {
+
+    if (!selectedVerse) {
+
+        alert(
+            "Selecione um versículo antes de enviar."
+        );
+
+        return;
+
+    }
+
+
+    const presentationData = {
+
+        reference:
+            selectedVerse.reference,
+
+        text:
+            selectedVerse.text,
+
+        background:
+            selectedBackground,
+
+        position:
+            verseChain.length > 1
+                ? `${currentChainIndex + 1} / ${verseChain.length}`
+                : "",
+
+        timestamp:
+            Date.now()
+
+    };
+
+
+    /*
+        localStorage permite comunicação entre as duas janelas,
+        desde que estejam no mesmo domínio/origem.
+    */
+
+    localStorage.setItem(
+        "churchPresentationData",
+        JSON.stringify(presentationData)
+    );
+
+
+    /*
+        Atualiza imediatamente a janela de apresentação
+        caso ela esteja aberta.
+    */
+
+    if (
+        presentationWindow &&
+        !presentationWindow.closed
+    ) {
+
+        try {
+
+            presentationWindow.updatePresentation(
+                presentationData
+            );
+
+        } catch(error) {
+
+            console.log(
+                "A apresentação será atualizada pelo localStorage."
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   MODO APRESENTAÇÃO
+========================================================= */
+
+function setupPresentationMode() {
+
+    document
+        .getElementById("controllerApp")
+        .classList.add("hidden");
+
+
+    document
+        .getElementById("presentationApp")
+        .classList.remove("hidden");
+
+
+    const savedData =
+        localStorage.getItem(
+            "churchPresentationData"
+        );
+
+
+    if (savedData) {
+
+        updatePresentation(
+            JSON.parse(savedData)
+        );
+
+    }
+
+
+    /*
+        Detecta mudanças feitas pela outra janela.
+    */
+
+    window.addEventListener(
+        "storage",
+        event => {
+
+            if (
+                event.key ===
+                "churchPresentationData"
+            ) {
+
+                updatePresentation(
+                    JSON.parse(event.newValue)
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+        Duplo clique entra em tela cheia.
+    */
+
+    document.addEventListener(
+        "dblclick",
+        () => {
+
+            if (!document.fullscreenElement) {
+
+                document.documentElement
+                    .requestFullscreen()
+                    .catch(() => {});
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   ATUALIZAR APRESENTAÇÃO
+========================================================= */
+
+function updatePresentation(data) {
+
+    const app =
+        document.getElementById("presentationApp");
+
+
+    const empty =
+        document.getElementById("presentationEmpty");
+
+
+    const content =
+        document.getElementById("presentationContent");
+
+
+    document
+        .getElementById("presentationText")
+        .textContent =
+        data.text;
+
+
+    document
+        .getElementById("presentationReference")
+        .textContent =
+        data.reference;
+
+
+    document
+        .getElementById("presentationPosition")
+        .textContent =
+        data.position || "";
+
+
+    app.style.backgroundImage =
+        `url("${data.background}")`;
+
+
+    empty.classList.add("hidden");
+
+    content.classList.remove("hidden");
+
+    fitPresentationText();
+
+}
+
+
+/*
+    Torna a função acessível
+    para a outra janela.
+*/
+
+window.updatePresentation =
+    updatePresentation;
+
+
+/* =========================================================
+   DETECTA QUAL MODO ABRIR
+========================================================= */
+
+if (
+    window.location.hash === "#presentation"
+) {
+
+    setupPresentationMode();
+
+} else {
+
+    generateImageSuggestions(
+        "nature"
+    );
+
+    updatePreview();
+
+    document.addEventListener("keydown", (event) => {
+        const tag = document.activeElement.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+        if (event.key === "ArrowRight") nextInChain();
+        if (event.key === "ArrowLeft") prevInChain();
+    });
+
+}
+
+</script>
+
+</body>
+</html>
