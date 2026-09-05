@@ -605,7 +605,7 @@
             <div class="hint">
                 Pesquise no formato <strong>João 3:16</strong>, <strong>1 Coríntios 13:4</strong>
                 ou um intervalo como <strong>Lucas 11:5-13</strong>.
-                A busca consulta a BIBLIAAPI.
+                Texto: versão pública Almeida Livre.
             </div>
 
 
@@ -771,34 +771,57 @@ let verseChain = [];
 let currentChainIndex = 0;
 
 /* =========================================================
-   BIBLIAAPI
+   FONTE DE VERSÍCULOS
    ========================================================= */
 
 /*
-    Cole sua chave aqui.
-
-    IMPORTANTE:
-    Em um arquivo HTML público, essa chave ficará visível.
-    Para produção, o ideal é usar um backend.
+    Texto público (domínio público / livre redistribuição),
+    hospedado em raw.githubusercontent.com — sem chave, sem login,
+    funciona direto em GitHub Pages.
+    Fonte: https://github.com/midvash/bible-data
 */
-const BIBLIA_API_TOKEN = "bapi_uglynuyivxle47hjyw1ksqyx5lol3fxtn3erxkep8iixcebv";
-const BIBLIA_API_VERSION = "acf";
+const BIBLIA_BASE_URL = "https://raw.githubusercontent.com/midvash/bible-data/main/versions/pt/almeida-livre/books/";
+const BIBLIA_VERSION_LABEL = "Almeida Livre";
+
+const bookJsonCache = {};
+
+async function loadBookData(bookCode) {
+    if (bookJsonCache[bookCode]) return bookJsonCache[bookCode];
+
+    const response = await fetch(`${BIBLIA_BASE_URL}${bookCode}.json`);
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ao carregar o livro (${bookCode})`);
+    }
+
+    const data = await response.json();
+    bookJsonCache[bookCode] = data;
+    return data;
+}
+
+function getVerseText(bookData, chapter, verse) {
+    const chapterData = bookData.chapters.find(c => c.chapter === chapter);
+    if (!chapterData) return null;
+
+    const verseData = chapterData.verses.find(v => v.number === verse);
+    return verseData ? verseData.text : null;
+}
 
 const bookAliases = {
-    "gênesis":"gn","genesis":"gn","êxodo":"ex","exodo":"ex","levítico":"lv","levitico":"lv",
-    "números":"nm","numeros":"nm","deuteronômio":"dt","deuteronomio":"dt","josué":"js","josue":"js",
-    "juízes":"jz","juizes":"jz","rute":"rt","1 samuel":"1sm","2 samuel":"2sm","1 reis":"1rs","2 reis":"2rs",
-    "1 crônicas":"1cr","1 cronicas":"1cr","2 crônicas":"2cr","2 cronicas":"2cr","esdras":"ed","neemias":"ne",
-    "ester":"et","jó":"job","jo":"job","salmos":"sl","salmo":"sl","provérbios":"pv","proverbios":"pv",
-    "eclesiastes":"ec","cantares":"ct","isaías":"is","isaias":"is","jeremias":"jr","lamentações":"lm","lamentacoes":"lm",
-    "ezequiel":"ez","daniel":"dn","oséias":"os","oseias":"os","joel":"jl","amós":"am","amos":"am","obadias":"ob",
-    "jonas":"jn","miqueias":"mq","naum":"na","habacuque":"hc","sofonias":"sf","ageu":"ag","zacarias":"zc","malaquias":"ml",
-    "mateus":"mt","marcos":"mc","lucas":"lc","joão":"jo","joao":"jo","atos":"at","romanos":"rm",
-    "1 coríntios":"1co","1 corintios":"1co","2 coríntios":"2co","2 corintios":"2co","gálatas":"gl","galatas":"gl",
-    "efésios":"ef","efesios":"ef","filipenses":"fp","colossenses":"cl","1 tessalonicenses":"1ts","2 tessalonicenses":"2ts",
-    "1 timóteo":"1tm","1 timoteo":"1tm","2 timóteo":"2tm","2 timoteo":"2tm","tito":"tt","filemom":"fm","hebreus":"hb",
-    "tiago":"tg","1 pedro":"1pe","2 pedro":"2pe","1 joão":"1jo","1 joao":"1jo","2 joão":"2jo","2 joao":"2jo",
-    "3 joão":"3jo","3 joao":"3jo","judas":"jd","apocalipse":"ap"
+    "gênesis":"Gen","genesis":"Gen","êxodo":"Exod","exodo":"Exod","levítico":"Lev","levitico":"Lev",
+    "números":"Num","numeros":"Num","deuteronômio":"Deut","deuteronomio":"Deut","josué":"Josh","josue":"Josh",
+    "juízes":"Judg","juizes":"Judg","rute":"Ruth","1 samuel":"1Sam","2 samuel":"2Sam","1 reis":"1Kgs","2 reis":"2Kgs",
+    "1 crônicas":"1Chr","1 cronicas":"1Chr","2 crônicas":"2Chr","2 cronicas":"2Chr","esdras":"Ezra","neemias":"Neh",
+    "ester":"Esth","jó":"Job","jo":"Job","salmos":"Ps","salmo":"Ps","provérbios":"Prov","proverbios":"Prov",
+    "eclesiastes":"Eccl","cantares":"Song","isaías":"Isa","isaias":"Isa","jeremias":"Jer","lamentações":"Lam","lamentacoes":"Lam",
+    "ezequiel":"Ezek","daniel":"Dan","oséias":"Hos","oseias":"Hos","joel":"Joel","amós":"Amos","amos":"Amos","obadias":"Obad",
+    "jonas":"Jonah","miqueias":"Mic","naum":"Nah","habacuque":"Hab","sofonias":"Zeph","ageu":"Hag","zacarias":"Zech","malaquias":"Mal",
+    "mateus":"Matt","marcos":"Mark","lucas":"Luke","joão":"John","joao":"John","atos":"Acts","romanos":"Rom",
+    "1 coríntios":"1Cor","1 corintios":"1Cor","2 coríntios":"2Cor","2 corintios":"2Cor","gálatas":"Gal","galatas":"Gal",
+    "efésios":"Eph","efesios":"Eph","filipenses":"Phil","colossenses":"Col","1 tessalonicenses":"1Thess","2 tessalonicenses":"2Thess",
+    "1 timóteo":"1Tim","1 timoteo":"1Tim","2 timóteo":"2Tim","2 timoteo":"2Tim","tito":"Titus","filemom":"Phlm","hebreus":"Heb",
+    "tiago":"Jas","1 pedro":"1Pet","2 pedro":"2Pet","1 joão":"1John","1 joao":"1John","2 joão":"2John","2 joao":"2John",
+    "3 joão":"3John","3 joao":"3John","judas":"Jude","apocalipse":"Rev"
 };
 
 function normalizeBook(book) {
@@ -827,17 +850,7 @@ async function searchVerse() {
         return;
     }
 
-    if (!BIBLIA_API_TOKEN || BIBLIA_API_TOKEN === "COLE_SUA_CHAVE_AQUI") {
-        container.innerHTML = `
-            <div class="verse-card">
-                Configure sua chave da BIBLIAAPI na constante
-                <strong>BIBLIA_API_TOKEN</strong>.
-            </div>
-        `;
-        return;
-    }
-
-    const [, bookName, chapter, verseStartRaw, verseEndRaw] = match;
+    const [, bookName, chapterRaw, verseStartRaw, verseEndRaw] = match;
     const book = bookAliases[normalizeBook(bookName)];
 
     if (!book) {
@@ -849,6 +862,7 @@ async function searchVerse() {
         return;
     }
 
+    const chapter = parseInt(chapterRaw, 10);
     let verseStart = parseInt(verseStartRaw, 10);
     let verseEnd = verseEndRaw ? parseInt(verseEndRaw, 10) : verseStart;
 
@@ -856,7 +870,7 @@ async function searchVerse() {
         [verseStart, verseEnd] = [verseEnd, verseStart];
     }
 
-    const MAX_RANGE = 30;
+    const MAX_RANGE = 60;
     if (verseEnd - verseStart + 1 > MAX_RANGE) {
         container.innerHTML = `
             <div class="verse-card">
@@ -872,21 +886,37 @@ async function searchVerse() {
         </div>
     `;
 
-    const verseNumbers = [];
-    for (let v = verseStart; v <= verseEnd; v++) verseNumbers.push(v);
+    let bookData;
+    try {
+        bookData = await loadBookData(book);
+    } catch (error) {
+        console.error(`Erro ao carregar ${bookName}:`, error);
+        container.innerHTML = `
+            <div class="verse-card">
+                Não foi possível buscar o versículo.<br>
+                <strong>Detalhe:</strong> ${escapeHTML(error.message || String(error))}
+            </div>
+        `;
+        return;
+    }
 
-    const outcomes = await Promise.all(
-        verseNumbers.map(v => fetchSingleVerse(book, chapter, v, bookName))
-    );
+    const results = [];
+    const missing = [];
 
-    const results = outcomes.filter(o => o.ok).map(o => o.result);
-    const failures = outcomes.filter(o => !o.ok);
+    for (let v = verseStart; v <= verseEnd; v++) {
+        const text = getVerseText(bookData, chapter, v);
+        if (text) {
+            results.push({ reference: `${bookName.trim()} ${chapter}:${v}`, text: stripHTML(text) });
+        } else {
+            missing.push(v);
+        }
+    }
 
     if (results.length === 0) {
         container.innerHTML = `
             <div class="verse-card">
                 Não foi possível buscar o versículo.<br>
-                <strong>Detalhe:</strong> ${escapeHTML(failures[0]?.error || "erro desconhecido")}
+                <strong>Detalhe:</strong> capítulo ou versículo não encontrado em ${escapeHTML(bookName)} ${chapter}.
             </div>
         `;
         return;
@@ -894,67 +924,8 @@ async function searchVerse() {
 
     renderVerseResults(results);
 
-    if (failures.length > 0) {
-        console.warn("Alguns versículos do intervalo falharam:", failures);
-    }
-}
-
-async function fetchSingleVerse(book, chapter, verse, bookName) {
-    try {
-        const url =
-            `https://bibliaapi.com.br/api/v2/versions/${encodeURIComponent(BIBLIA_API_VERSION)}` +
-            `/books/${encodeURIComponent(book)}` +
-            `/chapters/${encodeURIComponent(chapter)}` +
-            `/verses/${encodeURIComponent(verse)}`;
-
-        const response = await fetch(url, {
-            headers: {
-                "Authorization": `Bearer ${BIBLIA_API_TOKEN}`,
-                "Accept": "application/json"
-            }
-        });
-
-        if (!response.ok) {
-            const body = await response.text().catch(() => "");
-            throw new Error(`HTTP ${response.status}${body ? " — " + body.slice(0, 200) : ""}`);
-        }
-
-        const data = await response.json();
-
-        /*
-            Tenta acomodar pequenas diferenças no formato da resposta.
-        */
-        const verseText =
-            data.text ||
-            data.content ||
-            data.texto ||
-            data.verse?.text ||
-            data.verses?.[0]?.text ||
-            data.data?.text ||
-            data.result?.text ||
-            (typeof data.verse === "string" ? data.verse : null) ||
-            (Array.isArray(data) ? data[0]?.text : null);
-
-        if (!verseText) {
-            console.log("Resposta da API:", data);
-            throw new Error(
-                "Formato de resposta não reconhecido. JSON: " +
-                JSON.stringify(data).slice(0, 300)
-            );
-        }
-
-        const reference =
-            data.reference ||
-            `${bookName.trim()} ${chapter}:${verse}`;
-
-        return {
-            ok: true,
-            result: { reference, text: stripHTML(verseText) }
-        };
-
-    } catch (error) {
-        console.error(`Erro ao consultar ${bookName} ${chapter}:${verse}:`, error);
-        return { ok: false, error: error.message || String(error) };
+    if (missing.length > 0) {
+        console.warn(`Versículos não encontrados em ${bookName} ${chapter}:`, missing);
     }
 }
 
